@@ -4,29 +4,29 @@ import (
 	"hash/maphash"
 )
 
-type HashArrayMappedTrie[T any] struct {
+type HMT[T any] struct {
 	s maphash.Seed
 	// TODO implement collection of historical versions of this HashArrayMapped Trie
 	// will contains an ordered reference of root tree pointers
-	previous *HashArrayMappedTrie[T]
+	previous *HMT[T]
 	root     *Trie[T]
 }
 
-func New[T any]() *HashArrayMappedTrie[T] {
-	return &HashArrayMappedTrie[T]{
+func New[T any]() *HMT[T] {
+	return &HMT[T]{
 		s:    maphash.MakeSeed(),
 		root: newTrie[T](),
 	}
 }
 
-func (h *HashArrayMappedTrie[T]) Get(k Key) (*Entry[T], error) {
+func (h *HMT[T]) Get(k Key) (*Entry[T], error) {
 	v, err := hashCode(h.s, k)
 	if err != nil {
 		return nil, err
 	}
 	return retrieve[T](h.root, v), nil
 }
-func (h *HashArrayMappedTrie[T]) Set(k Key, v T) (*HashArrayMappedTrie[T], error) {
+func (h *HMT[T]) Set(k Key, v T) (*HMT[T], error) {
 	vKey, err := hashCode(h.s, k)
 	if err != nil {
 		return h, err
@@ -38,7 +38,7 @@ func (h *HashArrayMappedTrie[T]) Set(k Key, v T) (*HashArrayMappedTrie[T], error
 			Key:   k,
 			Value: v,
 		})
-	newHmt := &HashArrayMappedTrie[T]{
+	newHmt := &HMT[T]{
 		s:        h.s,
 		previous: h,
 		root:     newRoot,
@@ -46,7 +46,7 @@ func (h *HashArrayMappedTrie[T]) Set(k Key, v T) (*HashArrayMappedTrie[T], error
 	return newHmt, nil
 }
 
-func (h *HashArrayMappedTrie[T]) Del(k Key) (*HashArrayMappedTrie[T], error) {
+func (h *HMT[T]) Del(k Key) (*HMT[T], error) {
 	hashkey, err := hashCode(h.s, k)
 	if err != nil {
 		return nil, err
@@ -56,18 +56,18 @@ func (h *HashArrayMappedTrie[T]) Del(k Key) (*HashArrayMappedTrie[T], error) {
 		return h, nil
 	}
 
-	return &HashArrayMappedTrie[T]{
+	return &HMT[T]{
 		s:        h.s,
 		previous: h,
 		root:     newRoot,
 	}, nil
 }
 
-func (h *HashArrayMappedTrie[T]) Entries() []*Entry[T] {
+func (h *HMT[T]) Entries() []*Entry[T] {
 	return h.root.ChildEntries()
 }
 
-func (h *HashArrayMappedTrie[T]) Chain() *ChainHMT[T] {
+func (h *HMT[T]) Chain() *ChainHMT[T] {
 	return &ChainHMT[T]{
 		err: nil,
 		ht:  h,
