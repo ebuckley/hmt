@@ -8,8 +8,8 @@ type HashArrayMappedTrie[T any] struct {
 	s maphash.Seed
 	// TODO implement collection of historical versions of this HashArrayMapped Trie
 	// will contains an ordered reference of root tree pointers
-	generations []*Trie[T]
-	root        *Trie[T]
+	previous *HashArrayMappedTrie[T]
+	root     *Trie[T]
 }
 
 func New[T any]() *HashArrayMappedTrie[T] {
@@ -31,14 +31,19 @@ func (h *HashArrayMappedTrie[T]) Set(k Key, v T) (*HashArrayMappedTrie[T], error
 	if err != nil {
 		return h, err
 	}
-	insertTrie[T](
+	newRoot := insertTrie[T](
 		h.root,
 		vKey,
 		Entry[T]{
 			Key:   k,
 			Value: v,
 		})
-	return h, nil
+	newHmt := &HashArrayMappedTrie[T]{
+		s:        h.s,
+		previous: h,
+		root:     newRoot,
+	}
+	return newHmt, nil
 }
 
 func (h *HashArrayMappedTrie[T]) Entries() []*Entry[T] {
@@ -92,22 +97,33 @@ func hashCode(s maphash.Seed, bs Key) (uint64, error) {
 	return h.Sum64(), nil
 }
 
+// insertTrie will mutate the path of visited nodes, creating copies on the way to finding the right path
+// returns the new and improved root *tr
 func insertTrie[T any](tr *Trie[T], valueKey uint64, v Entry[T]) *Trie[T] {
-
-	if tr.value == nil {
-		tr.key = valueKey
-		tr.value = &v
-		return tr
-	} else if tr.key == valueKey {
-		tr.value = &v
-		return tr
+	ret := copyTrie(tr)
+	if ret.value == nil {
+		ret.key = valueKey
+		ret.value = &v
+		return ret
+	}
+	if tr.key == valueKey {
+		ret.value = &v
+		return ret
 	}
 	// go deeper
 	idx := lookupPath(valueKey)
-	if tr.connections[idx] == nil {
-		tr.connections[idx] = newTrie[T]()
+	if ret.connections[idx] == nil {
+		ret.connections[idx] = newTrie[T]()
 	}
-	return insertTrie(tr.connections[idx], incrementPath(valueKey), v)
+	ret.connections[idx] = insertTrie(ret.connections[idx], incrementPath(valueKey), v)
+	return ret
+}
+func copyTrie[T any](tr *Trie[T]) *Trie[T] {
+	return &Trie[T]{
+		key:         tr.key,
+		value:       tr.value,
+		connections: tr.connections, // connections are still the same shared subtree
+	}
 }
 
 // should always return a value between 0 & 63 to give us the index to lookup in the trie.

@@ -67,9 +67,9 @@ func TestBasicTrieOps(t *testing.T) {
 	}
 
 	root := newTrie[string]()
-	insertTrie[string](root, key, entry)
+	nextGen := insertTrie[string](root, key, entry)
 
-	found := retrieve[string](root, key)
+	found := retrieve[string](nextGen, key)
 	if found == nil {
 		t.Fatal("Should have found the value but got nil")
 	}
@@ -86,7 +86,8 @@ func TestPublicInterface(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		key := Key(makeUID(32))
 		value := makeUID(32)
-		_, err := nt.Set(key, value)
+		var err error
+		nt, err = nt.Set(key, value)
 		if err != nil {
 			t.Fatal("Bad insert")
 		}
@@ -96,11 +97,23 @@ func TestPublicInterface(t *testing.T) {
 	for k, v := range doubleUp {
 		val, err := nt.Get(Key(k))
 		if err != nil {
-			return
+			log.Fatalln(err)
+		}
+		if val == nil {
+			t.Fatal("Should return a value and not be nil")
 		}
 		if val.Value != v {
 			t.Fatal("Expected to get the value we set in the duplicate pure go map..")
 		}
+	}
+	generations := 0
+	genHt := nt
+	for genHt.previous != nil {
+		genHt = genHt.previous
+		generations++
+	}
+	if generations != 1000 {
+		t.Fatal("there should be 1000 generations of the immutable hash table but found: ", generations)
 	}
 }
 func BenchmarkName(b *testing.B) {
@@ -115,7 +128,8 @@ func TestStoringComplexTypes(t *testing.T) {
 	}
 	ht := New[Account]()
 
-	_, err := ht.Set(Key("ebuckley"), Account{
+	var err error
+	ht, err = ht.Set(Key("ebuckley"), Account{
 		Type:   1,
 		Amount: 89889,
 	})
@@ -123,7 +137,7 @@ func TestStoringComplexTypes(t *testing.T) {
 		log.Fatalln("should not error")
 	}
 
-	_, err = ht.Set(Key("jbezos"), Account{
+	ht, err = ht.Set(Key("jbezos"), Account{
 		Type:   2,
 		Amount: 1337,
 	})
