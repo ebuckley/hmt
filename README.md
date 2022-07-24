@@ -1,10 +1,11 @@
 # Very Simple - Immutable Hash Map
 
 - branch factor of 64, giving support for up to 68,719,476,736 entries
-- immutable
+- Immutable. Each operation on the hash map returns a new version.
+- Memory efficient we keep references to the old versions of the HMT, the majority of the trie can stay un-changed.
 
-This package implements an easy to use immutable Hash Array Mapped Trie. Using clojure and writing my own small lisp interpreter has inspired me to look at this data structure.
-Combined with a current sabbatical, now seems like the perfect time to write and publish something like this to improve my skills with the new Go-1.18 generics.
+Using clojure and writing my own small lisp interpreter has inspired me to look at this data structure.
+Combined with a current sabbatical, now seems like the perfect time to write and publish something like this to keep my skills share with the new Go-1.18 generics.
 
 **Usage**
 
@@ -21,10 +22,10 @@ func main() {
     points := hmt.New[int]().Chain()
 
     points.
-        Set(Key("ersin"), 1).
-        Set(Key("emily"), 1337).
-        Set(Key("vishi"), 99).
-        Set(Key("vladamir"), 69)
+        Set(hmt.Key("ersin"), 1).
+        Set(hmt.Key("emily"), 1337).
+        Set(hmt.Key("vishi"), 99).
+        Set(hmt.Key("vladamir"), 69)
 
     if points.Error() != nil {
         log.Fatalln("something went wrong with the API")
