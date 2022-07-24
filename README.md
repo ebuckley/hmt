@@ -1,8 +1,8 @@
 # Very Simple - Immutable Hash Map
 
 - branch factor of 64, giving support for up to 68,719,476,736 entries
-- Immutable. Each operation on the hash map returns a new version.
-- Memory efficient we keep references to the old versions of the HMT, the majority of the trie can stay un-changed.
+- Immutable. Insert and delete operations result in a new version of the HMT.
+- Memory efficient we keep references to the old versions of the Trie. The majority of keys and values will be unchanged.
 
 Using clojure and writing my own small lisp interpreter has inspired me to look at this data structure.
 Combined with a current sabbatical, now seems like the perfect time to write and publish something like this to keep my skills share with the new Go-1.18 generics.
@@ -35,4 +35,11 @@ func main() {
         log.Fatalln("should have 4 entries")
     }
 }
+
 ```
+
+** Read More about Hash Array Mapped Trie's**
+
+- Enjoyable blog about the basic approach of using a hash at different depths to find the https://worace.works/2016/05/24/hash-array-mapped-tries/
+- The guy wo invented this (Phillip Bagwell) http://lampwww.epfl.ch/papers/idealhashtrees.pdf
+- A cool project to follow along with if you are interested in immutable databases http://aosabook.org/en/500L/pages/dbdb-dog-bed-database.html
