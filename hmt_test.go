@@ -78,7 +78,45 @@ func TestBasicTrieOps(t *testing.T) {
 		t.Fatal("should be the same but values are differrent \nfound:", found, "expect:", expectedValue)
 	}
 }
+func BenchmarkPublicInterface(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		nt := New[string]()
 
+		doubleUp := make(map[string]string)
+		for i := 0; i < 1000; i++ {
+			key := Key(makeUID(32))
+			value := makeUID(32)
+			var err error
+			nt, err = nt.Set(key, value)
+			if err != nil {
+				b.Fatal("Bad insert")
+			}
+			doubleUp[string(key)] = value
+		}
+
+		for k, v := range doubleUp {
+			val, err := nt.Get(Key(k))
+			if err != nil {
+				b.Fatal("should not error but got", err)
+			}
+			if val == nil {
+				b.Fatal("Should return a value and not be nil")
+			}
+			if val.Value != v {
+				b.Fatal("Expected to get the value we set in the duplicate pure go map..")
+			}
+		}
+		generations := 0
+		genHt := nt
+		for genHt.previous != nil {
+			genHt = genHt.previous
+			generations++
+		}
+		if generations != 1000 {
+			b.Fatal("there should be 1000 generations of the immutable hash table but found: ", generations)
+		}
+	}
+}
 func TestPublicInterface(t *testing.T) {
 	nt := New[string]()
 
@@ -156,5 +194,53 @@ func TestStoringComplexTypes(t *testing.T) {
 	vals := ht.Entries()
 	if len(vals) != 2 {
 		log.Fatalln("Should have 2 values in the hmt")
+	}
+}
+
+func TestDelete(t *testing.T) {
+
+	var err error
+	type Account struct {
+		Type   int
+		Amount int64
+	}
+	ht := New[Account]()
+
+	ht, err = ht.Set(Key("ebuckley"), Account{
+		Type:   1,
+		Amount: 89889,
+	})
+	if err != nil {
+		t.Fatal("should not error but got", err)
+	}
+	ht, err = ht.Del(Key("ebuckley"))
+	if err != nil {
+		t.Fatal("should not error but got", err)
+	}
+
+	ent, err := ht.Get(Key("ebuckley"))
+	if err != nil {
+		t.Fatal("should not error but got", err)
+	}
+	if ent != nil {
+		t.Fatal("The entry should be nil after being deleted")
+	}
+}
+
+func TestChainableInterface(t *testing.T) {
+	points := New[int]().Chain()
+
+	points.
+		Set(Key("ersin"), 1).
+		Set(Key("emily"), 1337).
+		Set(Key("vishi"), 99).
+		Set(Key("vladamir"), 69)
+
+	if points.Error() != nil {
+		t.Fatal("Should not error out")
+	}
+	entries := points.Entries()
+	if len(entries) != 4 {
+		t.Fatal("expected 4 entries")
 	}
 }

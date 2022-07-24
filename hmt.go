@@ -46,8 +46,32 @@ func (h *HashArrayMappedTrie[T]) Set(k Key, v T) (*HashArrayMappedTrie[T], error
 	return newHmt, nil
 }
 
+func (h *HashArrayMappedTrie[T]) Del(k Key) (*HashArrayMappedTrie[T], error) {
+	hashkey, err := hashCode(h.s, k)
+	if err != nil {
+		return nil, err
+	}
+	newRoot := delete(h.root, hashkey)
+	if newRoot == nil {
+		return h, nil
+	}
+
+	return &HashArrayMappedTrie[T]{
+		s:        h.s,
+		previous: h,
+		root:     newRoot,
+	}, nil
+}
+
 func (h *HashArrayMappedTrie[T]) Entries() []*Entry[T] {
 	return h.root.ChildEntries()
+}
+
+func (h *HashArrayMappedTrie[T]) Chain() *ChainHMT[T] {
+	return &ChainHMT[T]{
+		err: nil,
+		ht:  h,
+	}
 }
 
 type Key []byte
@@ -144,4 +168,27 @@ func retrieve[T any](tr *Trie[T], valueKey uint64) *Entry[T] {
 		return nil
 	}
 	return retrieve(child, incrementPath(valueKey))
+}
+
+// will immutably delete the child, creating copies of the nodes that it visits. if it's never found, return nil..
+func delete[T any](tr *Trie[T], valueKey uint64) *Trie[T] {
+	ntr := copyTrie(tr)
+	if valueKey == tr.key {
+		ntr.value = nil
+		return ntr
+	}
+	idx := lookupPath(valueKey)
+	newValueKey := incrementPath(valueKey)
+	child := ntr.connections[idx]
+	// if the child does not exist, then return nil. We should not copy nodes if the tree is not mutated (deleting a non-existing key)
+	if child == nil {
+		return nil
+	}
+	result := delete(child, newValueKey)
+	if result == nil {
+		return tr // return the original trie if no child for deletion is found..
+	}
+	// update the subtree
+	ntr.connections[idx] = result
+	return ntr
 }
