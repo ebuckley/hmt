@@ -5,9 +5,7 @@ import (
 )
 
 type HMT[T any] struct {
-	s maphash.Seed
-	// TODO implement collection of historical versions of this HashArrayMapped Trie
-	// will contains an ordered reference of root tree pointers
+	s        maphash.Seed
 	previous *HMT[T]
 	root     *Trie[T]
 }
