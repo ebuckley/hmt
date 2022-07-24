@@ -4,54 +4,85 @@ import (
 	"hash/maphash"
 )
 
-type HashArrayMappedTrie struct {
-	s           maphash.Seed
-	generations []*Trie // TODO implement collection of historical versions of this HashArrayMapped Trie
-	root        *Trie
+type HashArrayMappedTrie[T any] struct {
+	s maphash.Seed
+	// TODO implement collection of historical versions of this HashArrayMapped Trie
+	// will contains an ordered reference of root tree pointers
+	generations []*Trie[T]
+	root        *Trie[T]
 }
 
-func New() *HashArrayMappedTrie {
-	return &HashArrayMappedTrie{
+func New[T any]() *HashArrayMappedTrie[T] {
+	return &HashArrayMappedTrie[T]{
 		s:    maphash.MakeSeed(),
-		root: newTrie(),
+		root: newTrie[T](),
 	}
 }
 
-func (h *HashArrayMappedTrie) Get(k Key) (*Value, error) {
-	v, err := hashCode(h.s, Value(k))
+func (h *HashArrayMappedTrie[T]) Get(k Key) (*Entry[T], error) {
+	v, err := hashCode(h.s, k)
 	if err != nil {
 		return nil, err
 	}
-	return retrieve(h.root, v), nil
+	return retrieve[T](h.root, v), nil
 }
-func (h *HashArrayMappedTrie) Set(k Key, v Value) (*HashArrayMappedTrie, error) {
-	vKey, err := hashCode(h.s, Value(k))
+func (h *HashArrayMappedTrie[T]) Set(k Key, v T) (*HashArrayMappedTrie[T], error) {
+	vKey, err := hashCode(h.s, k)
 	if err != nil {
 		return h, err
 	}
-	insertTrie(h.root, vKey, v)
+	insertTrie[T](
+		h.root,
+		vKey,
+		Entry[T]{
+			Key:   k,
+			Value: v,
+		})
 	return h, nil
 }
 
-type Key []byte
-type Value []byte
-
-type Trie struct {
-	key         uint64
-	value       *Value
-	connections [64]*Trie
+func (h *HashArrayMappedTrie[T]) Entries() []*Entry[T] {
+	return h.root.ChildEntries()
 }
 
-func newTrie() *Trie {
-	itr := &Trie{
+type Key []byte
+
+type Entry[T any] struct {
+	Key   Key
+	Value T
+}
+
+type Trie[T any] struct {
+	key         uint64
+	value       *Entry[T]
+	connections [64]*Trie[T]
+}
+
+func (t Trie[T]) ChildEntries() []*Entry[T] {
+	response := make([]*Entry[T], 0)
+	if t.value == nil {
+		return response
+	} else {
+		response = append(response, t.value)
+	}
+	for _, childTrie := range t.connections {
+		if childTrie != nil {
+			response = append(response, childTrie.ChildEntries()...)
+		}
+	}
+	return response
+}
+
+func newTrie[T any]() *Trie[T] {
+	itr := &Trie[T]{
 		key:         0,
 		value:       nil,
-		connections: [64]*Trie{},
+		connections: [64]*Trie[T]{},
 	}
 	return itr
 }
 
-func hashCode(s maphash.Seed, bs Value) (uint64, error) {
+func hashCode(s maphash.Seed, bs Key) (uint64, error) {
 	var h maphash.Hash
 	h.SetSeed(s)
 	_, err := h.Write(bs)
@@ -61,7 +92,7 @@ func hashCode(s maphash.Seed, bs Value) (uint64, error) {
 	return h.Sum64(), nil
 }
 
-func insertTrie(tr *Trie, valueKey uint64, v Value) *Trie {
+func insertTrie[T any](tr *Trie[T], valueKey uint64, v Entry[T]) *Trie[T] {
 
 	if tr.value == nil {
 		tr.key = valueKey
@@ -74,7 +105,7 @@ func insertTrie(tr *Trie, valueKey uint64, v Value) *Trie {
 	// go deeper
 	idx := lookupPath(valueKey)
 	if tr.connections[idx] == nil {
-		tr.connections[idx] = newTrie()
+		tr.connections[idx] = newTrie[T]()
 	}
 	return insertTrie(tr.connections[idx], incrementPath(valueKey), v)
 }
@@ -87,7 +118,7 @@ func incrementPath(val uint64) uint64 {
 	return val >> 6
 }
 
-func retrieve(tr *Trie, valueKey uint64) *Value {
+func retrieve[T any](tr *Trie[T], valueKey uint64) *Entry[T] {
 	if valueKey == tr.key {
 		return tr.value
 	}
