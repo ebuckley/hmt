@@ -65,6 +65,14 @@ func (h *HMT[T]) Entries() []*Entry[T] {
 	return h.root.ChildEntries()
 }
 
+func (h *HMT[T]) Generations() (res []*HMT[T]) {
+	res = append(res, h)
+	if h.previous != nil {
+		res = append(res, h.previous.Generations()...)
+	}
+	return
+}
+
 func (h *HMT[T]) Chain() *ChainHMT[T] {
 	return &ChainHMT[T]{
 		err: nil,

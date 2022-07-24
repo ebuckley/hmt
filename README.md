@@ -1,6 +1,9 @@
-# Very Simple - Immutable Hash Array Mapped Tree
+# Very Simple - Immutable Hash Map
 
-This package implements an easy to use immutable Hash Array Mapped Tree. Using clojure and writing my own small lisp interpreter has inspired me to look at this data structure.
+- branch factor of 64, giving support for up to 68,719,476,736 entries
+- immutable
+
+This package implements an easy to use immutable Hash Array Mapped Trie. Using clojure and writing my own small lisp interpreter has inspired me to look at this data structure.
 Combined with a current sabbatical, now seems like the perfect time to write and publish something like this to improve my skills with the new Go-1.18 generics.
 
 **Usage**

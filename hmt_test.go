@@ -243,4 +243,14 @@ func TestChainableInterface(t *testing.T) {
 	if len(entries) != 4 {
 		t.Fatal("expected 4 entries")
 	}
+
+	hmt, err := points.AsHMT()
+	if err != nil {
+		log.Fatalln("should not be holding any error reference")
+	}
+
+	generations := hmt.Generations()
+	if len(generations) != 5 {
+		log.Fatalln("should be 5 versions of the hmt found", generations)
+	}
 }
