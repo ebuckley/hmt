@@ -38,7 +38,7 @@ func main() {
 
 ```
 
-** Read More about Hash Array Mapped Trie's**
+## Read more
 
 - Enjoyable blog about the basic approach of using a hash at different depths to find the https://worace.works/2016/05/24/hash-array-mapped-tries/
 - The guy wo invented this (Phillip Bagwell) http://lampwww.epfl.ch/papers/idealhashtrees.pdf
