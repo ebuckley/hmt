@@ -95,9 +95,7 @@ type Trie[T any] struct {
 
 func (t Trie[T]) ChildEntries() []*Entry[T] {
 	response := make([]*Entry[T], 0)
-	if t.value == nil {
-		return response
-	} else {
+	if t.value != nil {
 		response = append(response, t.value)
 	}
 	for _, childTrie := range t.connections {
